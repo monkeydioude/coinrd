@@ -1,0 +1,19 @@
+[providers]
+    [providers.coingecko]
+        name="coingecko"
+        coins = [
+            "storm",
+            "bitcoin",
+            "iotex",
+            "quark-chain"
+        ]
+        currencies = [
+            "usd",
+            "btc"
+        ]
+        base_route = "https://api.coingecko.com/api/v3"
+        [providers.coingecko.routes]
+            ping = "/ping"
+            simple_price = "/simple/price"
+            coins_history = "/coins/{id}/history"
+            
