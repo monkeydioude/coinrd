@@ -5,9 +5,13 @@ use std::{fs, io::Error};
 // Provide defines a Provider behavior
 pub trait Provide {
     fn get_name(&self) -> &String;
-    fn get_coins(&self) -> &Vec<String>;
+    fn get_coins(&self) -> &HashMap<String, String>;
     fn get_coins_string(&self) -> String {
-        self.get_coins().join(",")
+        self.get_coins()
+        .keys()
+        .map(|s: &String| s.to_owned())
+        .collect::<Vec<String>>()
+        .join(",")
     }
     fn get_base_route(&self) -> &String;
     fn get_routes(&self) -> &HashMap<String, String>;
@@ -25,10 +29,10 @@ pub trait Provide {
 
 // Provider is the definition of a service that should be
 // deserialized from config
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Provider {
     name: String,
-    coins: Vec<String>,
+    coins: HashMap<String, String>,
     base_route: String,
     routes: HashMap<String, String>,
     currencies: Vec<String>,
@@ -43,7 +47,7 @@ impl Provide for Provider {
         &self.base_route
     }
 
-    fn get_coins(&self) -> &Vec<String> {
+    fn get_coins(&self) -> &HashMap<String, String> {
         &self.coins
     }
 
@@ -69,8 +73,24 @@ pub fn list_from_toml(filepath: String) -> Result<HashMap<String, Provider>, Err
         Err(err) => return Err(err),
     };
 
-    let plist: Providers = toml::from_str(&content).unwrap();
+    let plist: Providers = match toml::from_str(&content) {
+        Ok(r) => r,
+        Err(err) => return Err(err.into()),
+    };
     Ok(plist.providers)
+}
+
+pub fn update_provider(ref_file: &str, provider_name: &str) -> Option<Provider> {
+    match list_from_toml(ref_file.to_string()) {
+        Ok(p) => match p.get(provider_name) {
+            Some(mp) => return Some(mp.to_owned()),
+            _ => None,
+        },
+        Err(err) => {
+            print!("{:?}", err);
+            None
+        },
+    }
 }
 
 #[cfg(test)]
@@ -85,14 +105,25 @@ mod tests {
 
     #[test]
     fn i_should_parse_providers_file() {
-        let plist = match super::list_from_toml("./test/providers-test.toml".into()) {
+        let trial = match super::list_from_toml("./test/providers-test-1.toml".to_string()) {
             Ok(plist) => plist,
-            Err(err) => panic!("i_should_parse_providers_file should return Ok: {}", err) ,
+            Err(err) => panic!("{}", err) ,
         };
 
         use super::Provide;
 
-        assert_eq!(plist.get("coingecko").unwrap().routes.get("ping").unwrap(), "/ping");
-        assert_eq!(plist.get("coingecko").unwrap().get_uri("ping").unwrap(), "https://api.coingecko.com/api/v3/ping");
+        assert_eq!(trial.get("test1").unwrap().routes.get("ping").unwrap(), "/ping");
+        assert_eq!(trial.get("test1").unwrap().get_uri("ping").unwrap(), "https://api.coingecko.com/api/v3/ping");
+    }
+
+    #[test]
+    fn i_should_update_provider_multiple_times() {
+        let mut trial = super::update_provider("./test/providers-test-1.toml", "test1").unwrap();
+        assert_eq!(trial.name , "test1");
+        assert_eq!(trial.routes.get("ping").unwrap(), "/ping");
+
+        trial = super::update_provider("./test/providers-test-2.toml", "test2").unwrap();
+        assert_eq!(trial.name , "test2");
+        assert_eq!(trial.routes.get("pong").unwrap(), "/pong");
     }
 }

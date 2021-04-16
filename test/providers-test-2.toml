@@ -1,6 +1,6 @@
 [providers]
-    [providers.coingecko]
-        name="coingecko"
+    [providers.test2]
+        name="test2"
         currencies = [
             "usd",
             "btc",
@@ -8,16 +8,14 @@
             "eur"
         ]
         base_route = "https://api.coingecko.com/api/v3"
-        [providers.coingecko.routes]
-            ping = "/ping"
+        [providers.test2.routes]
+            pong = "/pong"
             simple_price = "/simple/price"
             coins_history = "/coins/{id}/history"
-        [providers.coingecko.coins]
+        [providers.test2.coins]
             storm="stmx"
             bitcoin="btc"
             iotex="iotx"
             quark-chain="qkc"
             chiliz="chz"
             cardano="ada"
-
-            
