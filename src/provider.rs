@@ -81,6 +81,7 @@ pub fn list_from_toml(filepath: String) -> Result<HashMap<String, Provider>, Err
 }
 
 pub fn update_provider(ref_file: &str, provider_name: &str) -> Option<Provider> {
+    println!("Update provider {} requested", provider_name);
     match list_from_toml(ref_file.to_string()) {
         Ok(p) => match p.get(provider_name) {
             Some(mp) => return Some(mp.to_owned()),
