@@ -67,7 +67,7 @@ fn main() {
         match gecko::simple_price(&coingecko) {
             Ok(coins) => {
                 let (trimmed_coins, cache) = coin::trim_nonupdated_coins(&coins_cache, &coins);
-                println!("{:?}\n{:?}\n", &trimmed_coins, coins);
+                println!("[INFO] {:?}", &trimmed_coins);
 
                 if trimmed_coins.coins.len() > 0 {
                     save_coins_data(&trimmed_coins, &collection);
@@ -80,7 +80,7 @@ fn main() {
             }
         };
 
-        println!("going for a siesta for {}s", S);
+        println!("[INFO] going for a siesta for {}s", S);
         thread::sleep(time::Duration::from_secs(S));
         cur_f = cur_f + 1;
     }
