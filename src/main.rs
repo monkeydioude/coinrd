@@ -13,7 +13,7 @@ use mongodb::{
 };
 
 const F: u32 = 4;
-const S: u64 = 60;
+const S: u64 = 64;
 
 fn db_connection (config: &Config) -> Collection {
     let client = match Client::with_uri_str(config.mongodb_uri.as_str()) {
