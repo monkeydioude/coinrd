@@ -21,5 +21,10 @@
             cardano="ada"
             avalanche-2="avax"
             basic-attention-token="bat"
+            ethereum="eth"
+            sushi="sushi"
+            ripple="xrp"
+            zilliqa="zil"
+            "0x"="zrx"
 
             
