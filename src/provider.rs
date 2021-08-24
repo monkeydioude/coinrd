@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::{fs, io::Error};
+use log::{info, error};
 
 // Provide defines a Provider behavior
 pub trait Provide {
@@ -81,14 +82,14 @@ pub fn list_from_toml(filepath: String) -> Result<HashMap<String, Provider>, Err
 }
 
 pub fn update_provider(ref_file: &str, provider_name: &str) -> Option<Provider> {
-    println!("[INFO] update provider {} requested", provider_name);
+    info!("Update provider {} requested", provider_name);
     match list_from_toml(ref_file.to_string()) {
         Ok(p) => match p.get(provider_name) {
             Some(mp) => return Some(mp.to_owned()),
             _ => None,
         },
         Err(err) => {
-            print!("{:?}", err);
+            error!("update_provider: {:?}", err);
             None
         },
     }

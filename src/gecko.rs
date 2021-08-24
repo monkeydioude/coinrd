@@ -22,6 +22,7 @@ fn format_coin_data(
             id,
             symbol,
             prices,
+            updated_at: None,
         });
     };
 
