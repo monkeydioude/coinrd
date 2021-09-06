@@ -2,19 +2,24 @@ pub mod config;
 pub mod gecko;
 pub mod provider;
 pub mod coin;
+pub mod latest_coins_data;
+pub mod database;
 
 use config::Config;
-use coin::{Stack};
+use coin::Stack;
+use latest_coins_data::get_coin_latest_data;
 use core::time;
 use std::thread;
-use mongodb::{bson::{to_bson, doc}, options::ReplaceOptions, sync::{Client, Database}};
+use mongodb::{bson::to_bson, sync::{Client}};
 use log::{info, warn, error};
 use chrono::Utc;
 
+use crate::latest_coins_data::LatestCoinData;
+use crate::database::MongoDB;
 const F: u32 = 4;
 const S: u64 = 64;
 
-fn db_connection (config: &Config) -> Database {
+fn db_connection (config: &Config) -> MongoDB {
     let client = match Client::with_uri_str(config.mongodb_uri.as_str()) {
         Ok(c) => c,
         Err(err) => {
@@ -22,32 +27,29 @@ fn db_connection (config: &Config) -> Database {
             panic!("{}", err);
         },
     };
-    client.database("coins")
+    
+    MongoDB::new(client.database("coins"))
 }
 
-fn save_coins_stack(coins: &Stack, db: &Database) {
+fn save_coins_stack(coins: &Stack, db: &MongoDB) {
     let doc = to_bson(coins).unwrap().as_document().unwrap().to_owned();
-    match db.collection("price_history").insert_one(doc, None) {
+    match db.to_mongo_db().collection("price_history").insert_one(doc, None) {
         Err(err) => error!("Err save_coins_stack: {}", err),
         _ => (),
     };
 }
 
-fn save_latest_entries(coins: &Stack, db: &Database) {
-    let collection = db.collection("latest_entries");
-
+fn save_latest_entries(coins: &Stack, db: &MongoDB) {
     for c in coins.coins.iter() {
-        let mut coin = c.1.to_owned();
-        coin.updated_at = Some(Utc::now().timestamp_millis());
-
-        match collection.replace_one(
-            doc!{"id": coin.id.to_owned()},
-            to_bson(&coin).unwrap().as_document().unwrap().to_owned(), 
-            ReplaceOptions::builder().upsert(true).build(),
-        ) {
-            Err(err) => error!("Err save_latest_entries: {}", err),
-            _ => (),
+        let coin = c.1.to_owned();
+        let mut latest_coins: LatestCoinData = match get_coin_latest_data(coin.id.to_owned(), db) {
+            Some(b) => b,
+            None => LatestCoinData::new(coin.id.to_owned(), coin.symbol.to_owned()),
         };
+
+        latest_coins.updated_at = Utc::now().timestamp_millis();
+        latest_coins.update_with_coin(coin);
+        latest_coins.save(db);
     }
 }
 
