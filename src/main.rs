@@ -7,6 +7,7 @@ pub mod database;
 
 use config::Config;
 use coin::Stack;
+use database::Collection;
 use latest_coins_data::get_coin_latest_data;
 use core::time;
 use std::thread;
@@ -18,6 +19,8 @@ use crate::latest_coins_data::LatestCoinData;
 use crate::database::MongoDB;
 const F: u32 = 4;
 const S: u64 = 64;
+
+static LATEST_ENTRIES_COLL: &str = "latest_entries";
 
 fn db_connection (config: &Config) -> MongoDB {
     let client = match Client::with_uri_str(config.mongodb_uri.as_str()) {
@@ -39,17 +42,20 @@ fn save_coins_stack(coins: &Stack, db: &MongoDB) {
     };
 }
 
-fn save_latest_entries(coins: &Stack, db: &MongoDB) {
+fn save_latest_entries(coins: &Stack, db: &MongoDB, prices_max_len: usize) {
+    let coll = db.new_collection(LATEST_ENTRIES_COLL);
+
     for c in coins.coins.iter() {
         let coin = c.1.to_owned();
-        let mut latest_coins: LatestCoinData = match get_coin_latest_data(coin.id.to_owned(), db) {
+        let mut latest_coins = match get_coin_latest_data(coin.id.to_owned(), &coll) {
             Some(b) => b,
             None => LatestCoinData::new(coin.id.to_owned(), coin.symbol.to_owned()),
         };
 
         latest_coins.updated_at = Utc::now().timestamp_millis();
-        latest_coins.update_with_coin(coin);
-        latest_coins.save(db);
+        latest_coins.update_with_coin(coin, prices_max_len);
+        &coll.save::<LatestCoinData>(latest_coins.id.to_owned(), latest_coins);
+        // latest_coins.save(db);
     }
 }
 
@@ -86,7 +92,7 @@ fn main() {
 
                 if trimmed_coins.coins.len() > 0 {
                     save_coins_stack(&trimmed_coins, &db);
-                    save_latest_entries(&trimmed_coins, &db)
+                    save_latest_entries(&trimmed_coins, &db, config.prices_max_len)
                 }
                 coins_cache = cache;
             },

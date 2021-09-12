@@ -8,8 +8,6 @@ pub struct Coin {
     pub prices: HashMap<String, f32>,
 }
 
-
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Stack {
     pub coins: HashMap<String, Coin>,
