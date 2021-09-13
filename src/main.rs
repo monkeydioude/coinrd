@@ -20,8 +20,6 @@ use crate::database::MongoDB;
 const F: u32 = 4;
 const S: u64 = 64;
 
-static LATEST_ENTRIES_COLL: &str = "latest_entries";
-
 fn db_connection (config: &Config) -> MongoDB {
     let client = match Client::with_uri_str(config.mongodb_uri.as_str()) {
         Ok(c) => c,
@@ -43,19 +41,18 @@ fn save_coins_stack(coins: &Stack, db: &MongoDB) {
 }
 
 fn save_latest_entries(coins: &Stack, db: &MongoDB, prices_max_len: usize) {
-    let coll = db.new_collection(LATEST_ENTRIES_COLL);
+    let coll = db.new_collection::<LatestCoinData>("latest_entries");
 
     for c in coins.coins.iter() {
         let coin = c.1.to_owned();
         let mut latest_coins = match get_coin_latest_data(coin.id.to_owned(), &coll) {
             Some(b) => b,
-            None => LatestCoinData::new(coin.id.to_owned(), coin.symbol.to_owned()),
+            None => LatestCoinData::new(coin.id.to_owned(), coin.symbol.to_owned(), prices_max_len),
         };
 
         latest_coins.updated_at = Utc::now().timestamp_millis();
-        latest_coins.update_with_coin(coin, prices_max_len);
-        &coll.save::<LatestCoinData>(latest_coins.id.to_owned(), latest_coins);
-        // latest_coins.save(db);
+        latest_coins.update_with_coin(coin);
+        coll.save(latest_coins.id.to_owned(), latest_coins);
     }
 }
 
