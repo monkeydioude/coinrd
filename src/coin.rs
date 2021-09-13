@@ -6,7 +6,6 @@ pub struct Coin {
     pub id: String,
     pub symbol: String,
     pub prices: HashMap<String, f32>,
-    pub updated_at: Option<i64>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -23,6 +22,7 @@ impl Stack {
         }
     }
 }
+
 
 // trim_nonupdated_coins compare with previously retrieved coins and filters out
 // ones that price hasn't change
@@ -80,7 +80,6 @@ mod tests {
                         id: "coinoyaro".to_string(),
                         symbol: "con".to_string(),
                         prices: gen_hashmap(vec!["wsh"], vec![4.20f32]),
-                        updated_at: None,
                     }
                 ]),
             created_at: 0,
@@ -101,13 +100,11 @@ mod tests {
             id: "cached1".to_string(),
             symbol: "cac".to_string(),
             prices: gen_hashmap(vec!["wsh"], vec![4.20f32]),
-            updated_at: None,
         };
         let og_coin = Coin {
             id: "og1".to_string(),
             symbol: "og".to_string(),
             prices: gen_hashmap(vec!["wsh"], vec![6.969f32]),
-            updated_at: None,
         };
 
         let trial = Stack {
@@ -143,7 +140,6 @@ mod tests {
                     id: "t1".to_string(),
                     symbol: "t1".to_string(),
                     prices: HashMap::new(),
-                    updated_at: None,
                 }]),
             created_at: 0,
         };
@@ -156,13 +152,11 @@ mod tests {
                     id: "t1".to_string(),
                     symbol: "t1".to_string(),
                     prices: HashMap::new(),
-                    updated_at: None,
                 },
                 Coin {
                     id: "t2".to_string(),
                     symbol: "t2".to_string(),
                     prices: HashMap::new(),
-                    updated_at: None,
                 }
             ]),
             created_at: 0,
@@ -178,7 +172,6 @@ mod tests {
                     id: "t2".to_string(),
                     symbol: "t2".to_string(),
                     prices: gen_hashmap(vec!["wsh"], vec![4.20f32]),
-                    updated_at: None,
                 }
             ]),
             created_at: 0,
