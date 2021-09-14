@@ -11,7 +11,7 @@ use database::Collection;
 use latest_coins_data::get_coin_latest_data;
 use core::time;
 use std::thread;
-use mongodb::{bson::to_bson, sync::{Client}};
+use mongodb::sync::{Client};
 use log::{info, warn, error};
 use chrono::Utc;
 
@@ -20,8 +20,10 @@ use crate::database::MongoDB;
 const F: u32 = 4;
 const S: u64 = 64;
 
-fn db_connection (config: &Config) -> MongoDB {
-    let client = match Client::with_uri_str(config.mongodb_uri.as_str()) {
+// db_connection returns a MongoDB struct wrapping
+// around Mongo DB connector.
+fn db_connection (mongodb_uri: String) -> MongoDB {
+    let client = match Client::with_uri_str(&mongodb_uri) {
         Ok(c) => c,
         Err(err) => {
             error!("Could not establish connection to DB: {}", err);
@@ -32,22 +34,22 @@ fn db_connection (config: &Config) -> MongoDB {
     MongoDB::new(client.database("coins"))
 }
 
+// save_coins_stack stores a batch of trimmed coins in a single new
+// MongoDB Document
 fn save_coins_stack(coins: &Stack, db: &MongoDB) {
-    let doc = to_bson(coins).unwrap().as_document().unwrap().to_owned();
-    match db.to_mongo_db().collection("price_history").insert_one(doc, None) {
-        Err(err) => error!("Err save_coins_stack: {}", err),
-        _ => (),
-    };
+    db.new_collection::<Stack>("price_history").insert(coins.clone());
 }
 
+// save_latest_entries stores the x lasts (x = prices_max_len) into a single document
+// organized by currency id 
 fn save_latest_entries(coins: &Stack, db: &MongoDB, prices_max_len: usize) {
     let coll = db.new_collection::<LatestCoinData>("latest_entries");
 
     for c in coins.coins.iter() {
         let coin = c.1.to_owned();
         let mut latest_coins = match get_coin_latest_data(coin.id.to_owned(), &coll) {
-            Some(b) => b,
-            None => LatestCoinData::new(coin.id.to_owned(), coin.symbol.to_owned(), prices_max_len),
+            Some(mut b) => b.set_prices_max_len(prices_max_len).clone(),
+            None => continue,
         };
 
         latest_coins.updated_at = Utc::now().timestamp_millis();
@@ -62,9 +64,9 @@ fn should_update_providers(c_f: u32) -> bool {
 
 fn main() {
     let mut cur_f = 0;
-    let config = Config::new();
+    let config = Config::parse();
     
-    let db = db_connection(&config);
+    let db = db_connection(config.mongodb_uri);
 
     let mut coingecko = match provider::update_provider(&config.ref_file, "coingecko") {
         Some(c) => c,

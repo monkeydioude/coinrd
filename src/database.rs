@@ -10,10 +10,13 @@ pub trait Collection<T> {
 
   fn save(self: &Self, id: String, entity: T)
   where T: Serialize;
+
+  fn insert(self: &Self, entity: T)
+  where T: Serialize;
 }
 
-// MongoDB acts as a light factory for generation
-// MongoCollection<T> structs
+// MongoDB acts as a light factory for
+// MongoCollection<T> trait Collection
 pub struct MongoDB {
   db: MongoDatabase,
 }
@@ -81,7 +84,7 @@ impl<T> Collection<T> for MongoCollection<T> {
     let doc = match unwrap_bson(to_bson(&entity)) {
       Ok(doc) => doc,
       Err(err) => {
-        error!("Err save_latest_entries: {}", err);
+        error!("Err save: {}", err);
         return
       },
     };
@@ -91,11 +94,29 @@ impl<T> Collection<T> for MongoCollection<T> {
         doc, 
         ReplaceOptions::builder().upsert(true).build(),
     ) {
-        Err(err) => error!("Err save_latest_entries: {}", err),
+        Err(err) => error!("Err save: {}", err),
+        _ => (),
+    };
+  }
+
+  fn insert(&self, entity: T)
+  where T: Serialize {
+    let doc = match unwrap_bson(to_bson(&entity)) {
+      Ok(doc) => doc,
+      Err(err) => {
+        error!("Err insert: {}", err);
+        return
+      },
+    };
+    // Actually performs replace_one operation on MongoDB Collection
+    match self.collection.insert_one(doc, None) {
+        Err(err) => error!("Err insert: {}", err),
         _ => (),
     };
   }
 }
+
+
 
 // unwrap_bson secures the serialization of the entity
 // and the unwrapping of the underlying document

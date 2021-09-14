@@ -8,7 +8,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Config {
+    pub fn parse() -> Config {
         let ref_file = match env::var("REF_FILE") {
             Ok(rf) => rf,
             Err(err) => panic!("Problem retrieving REF_FILE env var: {}", err),
