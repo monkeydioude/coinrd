@@ -1,6 +1,6 @@
 [package]
 name = "coinrd"
-version = "0.1.3"
+version = "0.2.0"
 authors = ["mkd <monkeydioude@gmail.com>"]
 edition = "2018"
 
