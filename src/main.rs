@@ -37,7 +37,7 @@ fn db_connection (mongodb_uri: String) -> MongoDB {
 // save_coins_stack stores a batch of trimmed coins in a single new
 // MongoDB Document
 fn save_coins_stack(coins: &Stack, db: &MongoDB) {
-    db.new_collection::<Stack>("price_history").insert(coins.clone());
+    db.new_collection::<Stack>("price_history").insert(coins);
 }
 
 // save_latest_entries stores the x lasts (x = prices_max_len) into a single document
@@ -48,13 +48,16 @@ fn save_latest_entries(coins: &Stack, db: &MongoDB, prices_max_len: usize) {
     for c in coins.coins.iter() {
         let coin = c.1.to_owned();
         let mut latest_coins = match get_coin_latest_data(coin.id.to_owned(), &coll) {
-            Some(mut b) => b.set_prices_max_len(prices_max_len).clone(),
+            Some(mut lcd) => {
+                lcd.set_prices_max_len(prices_max_len);
+                lcd
+            },
             None => continue,
         };
 
         latest_coins.updated_at = Utc::now().timestamp_millis();
         latest_coins.update_with_coin(coin);
-        coll.save(latest_coins.id.to_owned(), latest_coins);
+        coll.save(latest_coins.id.to_owned(), &latest_coins);
     }
 }
 
@@ -70,7 +73,7 @@ fn main() {
 
     let mut coingecko = match provider::update_provider(&config.ref_file, "coingecko") {
         Some(c) => c,
-        _ => panic!("coingecko config in {} file must be provided", config.ref_file.clone()),
+        _ => panic!("coingecko config in {} file must be provided", &config.ref_file),
     };
 
     let mut coins_cache = Stack::new();
@@ -86,19 +89,20 @@ fn main() {
 
         match gecko::simple_price(&coingecko) {
             Ok(coins) => {
-                let (trimmed_coins, cache) = coin::trim_nonupdated_coins(&coins_cache, &coins);
+                let trimmed_coins = coin::trim_nonupdated_coins(&coins_cache, &coins);
                 info!("{:?}", &trimmed_coins);
 
                 if trimmed_coins.coins.len() > 0 {
                     save_coins_stack(&trimmed_coins, &db);
                     save_latest_entries(&trimmed_coins, &db, config.prices_max_len)
                 }
-                coins_cache = cache;
+                coins_cache = coins;
             },
             Err(err) => {
                 warn!("{}", err);
                 continue
             }
+    
         };
 
         info!("Going for a siesta for {}s", S);

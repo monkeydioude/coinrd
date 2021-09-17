@@ -39,9 +39,8 @@ impl LatestCoinData {
         self.prices.push(coin.prices);
     }
 
-    pub fn set_prices_max_len(&mut self, p: usize) -> &Self {
+    pub fn set_prices_max_len(&mut self, p: usize) {
         self.prices_max_len = p;
-        self
     }
 }
 

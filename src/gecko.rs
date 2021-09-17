@@ -18,7 +18,7 @@ fn format_coin_data(
             None => continue,
         };
 
-        coins.insert(id.clone(), Coin {
+        coins.insert(id.to_owned(), Coin {
             id,
             symbol,
             prices,

@@ -8,10 +8,10 @@ pub trait Collection<T> {
   fn find_one(self: &Self, id: String) -> Option<T>
   where T: for <'a> Deserialize<'a> + std::fmt::Debug;
 
-  fn save(self: &Self, id: String, entity: T)
+  fn save(self: &Self, id: String, entity: &T)
   where T: Serialize;
 
-  fn insert(self: &Self, entity: T)
+  fn insert(self: &Self, entity: &T)
   where T: Serialize;
 }
 
@@ -78,7 +78,7 @@ impl<T> Collection<T> for MongoCollection<T> {
 
   // save of MongoCollection struct performs a 
   // replace_one operation on a MongoDB collection
-  fn save(&self, id: String, entity: T)
+  fn save(&self, id: String, entity: &T)
   where T: Serialize {
     // secure the json serialization of the entity
     let doc = match unwrap_bson(to_bson(&entity)) {
@@ -99,7 +99,7 @@ impl<T> Collection<T> for MongoCollection<T> {
     };
   }
 
-  fn insert(&self, entity: T)
+  fn insert(&self, entity: &T)
   where T: Serialize {
     let doc = match unwrap_bson(to_bson(&entity)) {
       Ok(doc) => doc,
