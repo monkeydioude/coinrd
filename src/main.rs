@@ -4,17 +4,20 @@ pub mod provider;
 pub mod coin;
 pub mod latest_coins_data;
 pub mod database;
+pub mod coin_info;
 
 use config::Config;
 use coin::Stack;
-use database::Collection;
+use database::{Collection};
 use latest_coins_data::get_coin_latest_data;
+use provider::{Provide, Provider};
 use core::time;
 use std::thread;
 use mongodb::sync::{Client};
 use log::{info, warn, error};
 use chrono::Utc;
 
+use crate::coin_info::CoinInfo;
 use crate::latest_coins_data::LatestCoinData;
 use crate::database::MongoDB;
 const F: u32 = 4;
@@ -65,8 +68,22 @@ fn should_update_providers(c_f: u32) -> bool {
     c_f == F
 }
 
+fn update_coingecko_list_provider_routine(ref_file: &str, collection: impl Collection<CoinInfo>) -> Result<Provider, String> {
+    let coingecko = match provider::update_provider(ref_file, "coingecko") {
+        Some(c) => c,
+        _ => return Err("Could not find matching provider".to_owned()),
+    };
+
+    for coin in coingecko.get_coins() {
+        collection.save(coin.0.to_owned(), &CoinInfo::new(coin.0, coin.1));
+    }
+
+    Ok(coingecko)
+}
+
 fn main() {
-    let mut cur_f = 0;
+    // so should_update_providers triggers straight away
+    let mut cur_f = 4;
     let config = Config::parse();
     
     let db = db_connection(config.mongodb_uri);
@@ -80,9 +97,15 @@ fn main() {
 
     loop {
         if should_update_providers(cur_f) {
-            coingecko = match provider::update_provider(&config.ref_file, "coingecko") {
-                Some(c) => c,
-                _ => coingecko,
+            coingecko = match update_coingecko_list_provider_routine(
+                &config.ref_file,
+                db.new_collection::<CoinInfo>("coin_info"),
+            ) {
+                Ok(fresh_gecko) => fresh_gecko,
+                Err(err) => {
+                    warn!("{}", err);
+                    coingecko
+                },
             };
             cur_f = 0;
         }
