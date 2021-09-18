@@ -127,6 +127,6 @@ mod tests {
         assert_eq!(goal.coins.len(), 1);
         assert_eq!(goal.coins.get("og1").unwrap().id, "og1");
         assert_eq!(cache.coins.get("cached1").unwrap().id, "cached1");
-        assert_eq!(cache.coins.get("og1").unwrap().id, "og1");
+        assert_eq!(trial.coins.get("og1").unwrap().id, "og1");
     }
 }
