@@ -18,7 +18,7 @@ pub trait Provide {
     fn get_routes(&self) -> &HashMap<String, String>;
     fn get_uri(&self, route: &str) -> Option<String> {
         match self.get_routes().get(route) {
-            Some(r) => Some(self.get_base_route().clone() + r),
+            Some(r) => Some(self.get_base_route().to_owned() + r),
             None => None,
         }
     }
