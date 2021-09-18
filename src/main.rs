@@ -55,7 +55,7 @@ fn save_latest_entries(coins: &Stack, db: &MongoDB, prices_max_len: usize) {
                 lcd.set_prices_max_len(prices_max_len);
                 lcd
             },
-            None => continue,
+            None => LatestCoinData::new(coin.id.to_owned(), coin.symbol.to_owned(), prices_max_len),
         };
 
         latest_coins.updated_at = Utc::now().timestamp_millis();
